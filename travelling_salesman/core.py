@@ -1,7 +1,7 @@
 import math
 import random
 
-class Work():
+class Ant():
     def __init__(self, ID, start_node, colony):
         self.ID = ID
         self.start_node = start_node
@@ -109,7 +109,7 @@ import sys
 
 
 
-class BigGroup:
+class Colony:
     def __init__(self, graph, num_ants, num_iterations):
         self.graph = graph
         self.num_ants = num_ants
@@ -170,7 +170,7 @@ class BigGroup:
         self.reset()
         ants = []
         for i in range(0, self.num_ants):
-            ant = Work(i, random.randint(0, self.graph.num_nodes - 1), self)
+            ant = Ant(i, random.randint(0, self.graph.num_nodes - 1), self)
             ants.append(ant)
 
         return ants
@@ -187,7 +187,7 @@ class BigGroup:
                     deposition = self.Alpha * delt_pheromone # deposition inversely proportional to total path length
                     self.graph.update_pheromone(start, end, evaporation + deposition)
 
-class GraphBit:
+class Graph:
     def __init__(self, num_nodes, distance_matrix, pheromone_mat=None):
         print len(distance_matrix)
         if len(distance_matrix) != num_nodes:
@@ -278,13 +278,13 @@ def main(argv):
 
 
     try:
-        graph = GraphBit(nodes_to_visit, cost_matrix)
+        graph = Graph(nodes_to_visit, cost_matrix)
         best_path = None
         best_path_cost = sys.maxint
         for i in range(0, repetitions):
             print "Repetition %s" % i
             graph.reset_pheromone() # Reset pheromone to equally distributed
-            workers = BigGroup(graph, ants, iterations)
+            workers = Colony(graph, ants, iterations)
             print "Colony Started"
             workers.start()
             if workers.best_path_cost < best_path_cost:

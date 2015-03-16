@@ -1,5 +1,6 @@
 import math
 import random
+import logging
 
 class Ant():
     def __init__(self, ID, start_node, colony):
@@ -54,7 +55,7 @@ class Ant():
         max_node = -1
         if q < self.Q0:
             # We will move to city with highest: pheromone*(1/distance)
-            print "Exploitation"
+            logging.debug("Exploitation")
             max_path_strength = -1
             path_strength = None
             for node in self.nodes_to_visit.values():
@@ -71,7 +72,7 @@ class Ant():
             # and choose the last node that has a cost higher than the average. If none meet this criterion,
             # we choose the very last node
             #Bob was here
-            print "Exploration"
+            logging.debug("Exploration")
             sum = 0
             node = -1
             for node in self.nodes_to_visit.values():
@@ -81,11 +82,11 @@ class Ant():
             if sum == 0:
                 raise Exception("sum = 0")
             avg = sum / len(self.nodes_to_visit)
-            print "avg = %s" % (avg,)
+            logging.debug("avg = %s", avg)
             for node in self.nodes_to_visit.values():
                 path_strength = graph.pheromone(current_node, node) * math.pow(graph.inverse_distance(current_node, node), self.Beta)
                 if path_strength > avg:
-                    print "path_strength = %s" % (path_strength,)
+                    logging.debug("path_strength = %s", path_strength)
                     max_node = node
             if max_node == -1:
                 max_node = node # Use last node
@@ -149,7 +150,7 @@ class Colony:
         return self.iteration
 
     def update(self, ant):
-        print "Update called by %s" % (ant.ID,)
+        logging.debug("Update called by %s", ant.ID)
         self.ant_counter += 1
         self.avg_path_cost += ant.path_cost
         if ant.path_cost < self.best_path_cost:
@@ -159,8 +160,8 @@ class Colony:
             self.best_path_iteration = self.iteration
         if self.ant_counter == len(self.ants):
             self.avg_path_cost /= len(self.ants)
-            print "Best: %s, %s, %s, %s" % (
-                self.best_path, self.best_path_cost, self.iteration, self.avg_path_cost,)
+            logging.debug("Best: %s, %s, %s, %s",
+                          self.best_path, self.best_path_cost, self.iteration, self.avg_path_cost)
 
 
     def done(self):
@@ -189,7 +190,7 @@ class Colony:
 
 class Graph:
     def __init__(self, num_nodes, distance_matrix, pheromone_mat=None):
-        print len(distance_matrix)
+        logging.debug(len(distance_matrix))
         if len(distance_matrix) != num_nodes:
             raise Exception("len(distance) != num_nodes")
         self.num_nodes = num_nodes
@@ -219,8 +220,8 @@ class Graph:
     def reset_pheromone(self):
         avg = self.average_distance()
         self.pheromone0 = 1.0 / (self.num_nodes * 0.5 * avg)
-        print "Average = %s" % (avg,)
-        print "pheromone0 = %s" % (self.pheromone0)
+        logging.debug("Average = %s", avg)
+        logging.debug("pheromone0 = %s", self.pheromone0)
         for start in range(0, self.num_nodes):
             for end in range(0, self.num_nodes):
                 self.pheromone_mat[start][end] = self.pheromone0
@@ -282,29 +283,26 @@ def main(argv):
         best_path = None
         best_path_cost = sys.maxint
         for i in range(0, repetitions):
-            print "Repetition %s" % i
+            logging.info("Repetition %s", i)
             graph.reset_pheromone() # Reset pheromone to equally distributed
             workers = Colony(graph, ants, iterations)
-            print "Colony Started"
+            logging.debug("Colony Started")
             workers.start()
             if workers.best_path_cost < best_path_cost:
-                print "Colony Path"
+                logging.debug("Colony Path")
                 best_path = workers.best_path
                 best_path_cost = workers.best_path_cost
 
-        print "\n------------------------------------------------------------"
-        print "                     Results                                "
-        print "------------------------------------------------------------"
-        print "\nBest path = %s" % (best_path,)
+        logging.info("Best path = %s", best_path)
         path_by_names = []
         for node in best_path:
-            print node_names[node] + " ",
             path_by_names.append(node_names[node])
-        print "\nBest path cost = %s\n" % (best_path_cost,)
+        logging.info(" ".join(path_by_names))
+        logging.info("Best path cost = %s", best_path_cost)
         results = [best_path, path_by_names, best_path_cost]
         pickle.dump(results, open(argv[2], 'w+'))
     except Exception, e:
-        print "exception: " + str(e)
+        logging.error("exception: " + str(e))
         traceback.print_exc()
 
 

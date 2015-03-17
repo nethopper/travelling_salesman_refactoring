@@ -10,7 +10,7 @@ def input_data():
 
 @pytest.fixture
 def output_expected_single():
-    return [[1, 7, 9, 13, 11, 12, 0, 6, 3, 10, 5, 4, 8, 2], ['Hammerfest', 'Troms\xf8', '\xc5lesund', 'Vang', 'Fl\xe5m', 'Sogndal', 'Bergen', 'Stavanger', 'Kristiansand', 'Vinje', 'Oslo', 'Lillehammer', 'Trondheim', 'Kirkenes'], 6115]
+    return [[2, 1, 7, 8, 9, 13, 12, 11, 0, 6, 3, 10, 5, 4], ['Kirkenes', 'Hammerfest', 'Troms\xf8', 'Trondheim', '\xc5lesund', 'Vang', 'Sogndal', 'Fl\xe5m', 'Bergen', 'Stavanger', 'Kristiansand', 'Vinje', 'Oslo', 'Lillehammer'], 5979]
 
 def test_end_to_end_single(tmpdir, input_data, output_expected_single):
     cities_to_visit = 14

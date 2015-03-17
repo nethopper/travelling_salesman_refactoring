@@ -1,20 +1,23 @@
 import math
 import random
 import logging
+from copy import deepcopy
 
 class Ant():
-    def __init__(self, ID, start_node, colony):
+    def __init__(self, ID, start_node, graph):
         self.ID = ID
         self.start_node = start_node
-        self.colony = colony
         self.current_node = self.start_node
-        self.graph = self.colony.graph
-        self.path = []
-        self.path.append(self.start_node)
+        self.graph = graph
+        self.path = [self.start_node]
         self.path_cost = 0
         self.Beta = 1.0
         self.Q0 = 0.5
         self.Rho = 0.99
+        self.reset_nodes_to_visit()
+        self.reset_path_matrix()
+
+    def reset_nodes_to_visit(self):
         # map of city_id -> city_id, without start city
         # during transitions, the node that an ant moves to
         # is removed
@@ -22,35 +25,37 @@ class Ant():
         for i in range(0, self.graph.num_nodes):
             if i != self.start_node:
                 self.nodes_to_visit[i] = i
+
+    def reset_path_matrix(self):
         self.path_matrix = []
         for i in range(0, self.graph.num_nodes):
             self.path_matrix.append([0] * self.graph.num_nodes)
+
 
     # move to new city found through state_transition_rule and remember the
     # distance. The new city is added to the path vector. The route is marked
     # on the path matrix.
     #could this be simpler?
     def run(self):
-        graph = self.colony.graph
         while not self.end():
             new_node = self.state_transition_rule(self.current_node)
-            self.path_cost += graph.distance(self.current_node, new_node)
+            self.path_cost += self.graph.distance(self.current_node, new_node)
             self.path.append(new_node)
             self.path_matrix[self.current_node][new_node] = 1
             self.local_updating_rule(self.current_node, new_node)
             self.current_node = new_node
-        self.path_cost += graph.distance(self.path[-1], self.path[0])
-        self.colony.update(self)
-        self.__init__(self.ID, self.start_node, self.colony)
+        self.path_cost += self.graph.distance(self.path[-1], self.path[0])
+        return {'ID': self.ID,
+                'path_cost':  self.path_cost,
+                'path_matrix': deepcopy(self.path_matrix),
+                'path': deepcopy(self.path)}
 
     def end(self):
         return not self.nodes_to_visit
 
-
     # Returns a city to move to using cost function
     # pheromone(current, next) * (1/dist(current, next))^beta (currently beta is always 1)
     def state_transition_rule(self, current_node):
-        graph = self.colony.graph
         q = random.random() # in [0, 1]
         max_node = -1
         if q < self.Q0:
@@ -59,9 +64,9 @@ class Ant():
             max_path_strength = -1
             path_strength = None
             for node in self.nodes_to_visit.values():
-                if graph.pheromone(current_node, node) == 0:
+                if self.graph.pheromone(current_node, node) == 0:
                     raise Exception("pheromone = 0")
-                path_strength = graph.pheromone(current_node, node) * math.pow(graph.inverse_distance(current_node, node), self.Beta)
+                path_strength = self.graph.pheromone(current_node, node) * math.pow(self.graph.inverse_distance(current_node, node), self.Beta)
                 if path_strength > max_path_strength: # Remember city for highest pheromone path
                     max_path_strength = path_strength
                     max_node = node
@@ -76,15 +81,15 @@ class Ant():
             sum = 0
             node = -1
             for node in self.nodes_to_visit.values():
-                if graph.pheromone(current_node, node) == 0:
+                if self.graph.pheromone(current_node, node) == 0:
                     raise Exception("pheromone = 0")
-                sum += graph.pheromone(current_node, node) * math.pow(graph.inverse_distance(current_node, node), self.Beta)
+                sum += self.graph.pheromone(current_node, node) * math.pow(self.graph.inverse_distance(current_node, node), self.Beta)
             if sum == 0:
                 raise Exception("sum = 0")
             avg = sum / len(self.nodes_to_visit)
             logging.debug("avg = %s", avg)
             for node in self.nodes_to_visit.values():
-                path_strength = graph.pheromone(current_node, node) * math.pow(graph.inverse_distance(current_node, node), self.Beta)
+                path_strength = self.graph.pheromone(current_node, node) * math.pow(self.graph.inverse_distance(current_node, node), self.Beta)
                 if path_strength > avg:
                     logging.debug("path_strength = %s", path_strength)
                     max_node = node
@@ -100,9 +105,8 @@ class Ant():
     # New pheromone level is 0.01*old + 0.99*reset_pheromone
     def local_updating_rule(self, current_node, next_node):
         #Update the pheromones on the pheromone matrix to represent transitions of the ants
-        graph = self.colony.graph
-        new_strength = (1 - self.Rho) * graph.pheromone(current_node, next_node) + (self.Rho * graph.pheromone0)
-        graph.update_pheromone(current_node, next_node, new_strength)
+        new_strength = (1 - self.Rho) * self.graph.pheromone(current_node, next_node) + (self.Rho * self.graph.pheromone0)
+        self.graph.update_pheromone(current_node, next_node, new_strength)
 
 
 import random
@@ -125,10 +129,11 @@ class Colony:
         self.best_path_iteration = 0                     # last best path iteration
 
     def start(self):
-        self.ants = self.create_workers()
+        self.reset()
         self.iteration = 0
 
         while self.iteration < self.num_iterations:
+            self.ants = self.create_workers()
             self.perform_iteration()
             # Note that this will help refine the results future iterations.
             self.global_updating_rule()
@@ -138,7 +143,8 @@ class Colony:
         self.ant_counter = 0
         self.iteration += 1
         for ant in self.ants:
-            ant.run()
+            self.update(ant.run())
+
 
     def num_ants(self):
         return len(self.ants)
@@ -150,13 +156,13 @@ class Colony:
         return self.iteration
 
     def update(self, ant):
-        logging.debug("Update called by %s", ant.ID)
+        logging.debug("Update called by %s", ant['ID'])
         self.ant_counter += 1
-        self.avg_path_cost += ant.path_cost
-        if ant.path_cost < self.best_path_cost:
-            self.best_path_cost = ant.path_cost
-            self.best_path_matrix = ant.path_matrix
-            self.best_path = ant.path
+        self.avg_path_cost += ant['path_cost']
+        if ant['path_cost'] < self.best_path_cost:
+            self.best_path_cost = ant['path_cost']
+            self.best_path_matrix = ant['path_matrix']
+            self.best_path = ant['path']
             self.best_path_iteration = self.iteration
         if self.ant_counter == len(self.ants):
             self.avg_path_cost /= len(self.ants)
@@ -168,10 +174,9 @@ class Colony:
         return self.iteration == self.num_iterations
 
     def create_workers(self):
-        self.reset()
         ants = []
         for i in range(0, self.num_ants):
-            ant = Ant(i, random.randint(0, self.graph.num_nodes - 1), self)
+            ant = Ant(i, random.randint(0, self.graph.num_nodes - 1), self.graph)
             ants.append(ant)
 
         return ants

@@ -78,17 +78,8 @@ class Ant():
     def exploit_best_edge(self, current_node):
         # We will move to city with highest: pheromone*(1/distance)
         logging.debug("Exploitation")
-        max_node = None
-        max_path_strength = -1
-        current_strength = None
-        for node in self.nodes_to_visit.values():
-            if self.graph.pheromone(current_node, node) == 0:
-                raise Exception("pheromone = 0")
-            current_strength = self.path_strength(current_node, node)
-            if current_strength > max_path_strength: # Remember city for highest pheromone path
-                max_path_strength = current_strength
-                max_node = node
-        return max_node
+        strength_to = lambda node : self.path_strength(current_node, node)
+        return max(self.nodes_to_visit.values(), key=strength_to)
 
     # Paper describes moving from current city c to a random city s with the probability
     # distribution p(s) = cost(c, s)/ sum of cost(c, r) over visited cities r
@@ -97,25 +88,15 @@ class Ant():
     # we choose the very last node
     def explore_random_edge(self, current_node):
         logging.debug("Exploration")
-        max_node = None
-        sum = 0
-        node = -1
-        for node in self.nodes_to_visit.values():
-            if self.graph.pheromone(current_node, node) == 0:
-                raise Exception("pheromone = 0")
-            sum += self.path_strength(current_node, node)
-        if sum == 0:
-            raise Exception("sum = 0")
-        avg = sum / len(self.nodes_to_visit)
-        logging.debug("avg = %s", avg)
-        for node in self.nodes_to_visit.values():
-            current_strength = self.path_strength(current_node, node)
-            if current_strength > avg:
-                logging.debug("path_strength = %s", current_strength)
-                max_node = node
-        if max_node is None:
-            max_node = node # Use last node
-        return max_node
+        max_node = self.nodes_to_visit.values()[-1]
+
+        avg_strength = sum(self.path_strength(current_node, node) for node in self.nodes_to_visit.values()) / len(self.nodes_to_visit)
+
+        logging.debug("avg = %s", avg_strength)
+
+        eligible_nodes = [self.nodes_to_visit.values()[-1]] + [node for node in self.nodes_to_visit.values() if self.path_strength(current_node, node) > avg_strength]
+
+        return eligible_nodes[-1]
 
     def path_strength(self, start, end):
         return self.graph.pheromone(start, end) * math.pow(self.graph.inverse_distance(start, end), self.Beta)

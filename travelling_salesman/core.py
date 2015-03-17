@@ -21,15 +21,11 @@ class Ant():
         # map of city_id -> city_id, without start city
         # during transitions, the node that an ant moves to
         # is removed
-        self.nodes_to_visit = {}
-        for i in range(0, self.graph.num_nodes):
-            if i != self.start_node:
-                self.nodes_to_visit[i] = i
+        self.nodes_to_visit = [n for n in range(self.graph.num_nodes) if n != self.start_node]
+
 
     def reset_path_matrix(self):
-        self.path_matrix = []
-        for i in range(0, self.graph.num_nodes):
-            self.path_matrix.append([0] * self.graph.num_nodes)
+        self.path_matrix = [[0] * self.graph.num_nodes] * self.graph.num_nodes
 
 
     # move to new city found through state_transition_rule and remember the
@@ -69,7 +65,7 @@ class Ant():
             max_node = self.explore_random_edge(current_node)
         if max_node is None:
             raise Exception("max_node not found")
-        del self.nodes_to_visit[max_node]
+        self.nodes_to_visit.remove(max_node)
         return max_node
 
     def should_use_exploitation(self):
@@ -79,7 +75,7 @@ class Ant():
         # We will move to city with highest: pheromone*(1/distance)
         logging.debug("Exploitation")
         strength_to = lambda node : self.path_strength(current_node, node)
-        return max(self.nodes_to_visit.values(), key=strength_to)
+        return max(self.nodes_to_visit, key=strength_to)
 
     # Paper describes moving from current city c to a random city s with the probability
     # distribution p(s) = cost(c, s)/ sum of cost(c, r) over visited cities r
@@ -88,15 +84,19 @@ class Ant():
     # we choose the very last node
     def explore_random_edge(self, current_node):
         logging.debug("Exploration")
-        max_node = self.nodes_to_visit.values()[-1]
+        max_node = self.nodes_to_visit[-1]
 
-        avg_strength = sum(self.path_strength(current_node, node) for node in self.nodes_to_visit.values()) / len(self.nodes_to_visit)
+        avg_strength = sum(self.path_strength(current_node, node) for node in self.nodes_to_visit) / len(self.nodes_to_visit)
 
         logging.debug("avg = %s", avg_strength)
 
-        eligible_nodes = [self.nodes_to_visit.values()[-1]] + [node for node in self.nodes_to_visit.values() if self.path_strength(current_node, node) > avg_strength]
+        is_eligible = lambda n: self.path_strength(current_node, n) > avg_strength
+        eligible_nodes = filter(is_eligible, self.nodes_to_visit)
 
-        return eligible_nodes[-1]
+        if eligible_nodes:
+            return eligible_nodes[-1]
+        else:
+            return self.nodes_to_visit[-1]
 
     def path_strength(self, start, end):
         return self.graph.pheromone(start, end) * math.pow(self.graph.inverse_distance(start, end), self.Beta)
@@ -112,8 +112,6 @@ class Ant():
 
 import random
 import sys
-
-
 
 class Colony:
     def __init__(self, graph, num_ants, num_iterations):

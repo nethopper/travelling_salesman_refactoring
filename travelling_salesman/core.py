@@ -38,17 +38,23 @@ class Ant():
     #could this be simpler?
     def run(self):
         while not self.end():
-            new_node = self.state_transition_rule(self.current_node)
-            self.path_cost += self.graph.distance(self.current_node, new_node)
-            self.path.append(new_node)
-            self.path_matrix[self.current_node][new_node] = 1
-            self.local_updating_rule(self.current_node, new_node)
-            self.current_node = new_node
-        self.path_cost += self.graph.distance(self.path[-1], self.path[0])
+            self.extend_path()
+        self.add_cost_of_return()
         return {'ID': self.ID,
                 'path_cost':  self.path_cost,
                 'path_matrix': deepcopy(self.path_matrix),
                 'path': deepcopy(self.path)}
+
+    def extend_path(self):
+        new_node = self.state_transition_rule(self.current_node)
+        self.path_cost += self.graph.distance(self.current_node, new_node)
+        self.path.append(new_node)
+        self.path_matrix[self.current_node][new_node] = 1
+        self.local_updating_rule(self.current_node, new_node)
+        self.current_node = new_node
+
+    def add_cost_of_return(self):
+        self.path_cost += self.graph.distance(self.path[-1], self.path[0])
 
     def end(self):
         return not self.nodes_to_visit
@@ -56,49 +62,63 @@ class Ant():
     # Returns a city to move to using cost function
     # pheromone(current, next) * (1/dist(current, next))^beta (currently beta is always 1)
     def state_transition_rule(self, current_node):
-        q = random.random() # in [0, 1]
-        max_node = -1
-        if q < self.Q0:
-            # We will move to city with highest: pheromone*(1/distance)
-            logging.debug("Exploitation")
-            max_path_strength = -1
-            path_strength = None
-            for node in self.nodes_to_visit.values():
-                if self.graph.pheromone(current_node, node) == 0:
-                    raise Exception("pheromone = 0")
-                path_strength = self.graph.pheromone(current_node, node) * math.pow(self.graph.inverse_distance(current_node, node), self.Beta)
-                if path_strength > max_path_strength: # Remember city for highest pheromone path
-                    max_path_strength = path_strength
-                    max_node = node
+        max_node = None
+        if self.should_use_exploitation():
+            max_node = self.exploit_best_edge(current_node)
         else:
-            # Paper describes moving from current city c to a random city s with the probability
-            # distribution p(s) = cost(c, s)/ sum of cost(c, r) over visited cities r
-            # Here we find the average cost of travelling from c to all other not yet visited cities
-            # and choose the last node that has a cost higher than the average. If none meet this criterion,
-            # we choose the very last node
-            #Bob was here
-            logging.debug("Exploration")
-            sum = 0
-            node = -1
-            for node in self.nodes_to_visit.values():
-                if self.graph.pheromone(current_node, node) == 0:
-                    raise Exception("pheromone = 0")
-                sum += self.graph.pheromone(current_node, node) * math.pow(self.graph.inverse_distance(current_node, node), self.Beta)
-            if sum == 0:
-                raise Exception("sum = 0")
-            avg = sum / len(self.nodes_to_visit)
-            logging.debug("avg = %s", avg)
-            for node in self.nodes_to_visit.values():
-                path_strength = self.graph.pheromone(current_node, node) * math.pow(self.graph.inverse_distance(current_node, node), self.Beta)
-                if path_strength > avg:
-                    logging.debug("path_strength = %s", path_strength)
-                    max_node = node
-            if max_node == -1:
-                max_node = node # Use last node
-        if max_node < 0:
-            raise Exception("max_node < 0")
+            max_node = self.explore_random_edge(current_node)
+        if max_node is None:
+            raise Exception("max_node not found")
         del self.nodes_to_visit[max_node]
         return max_node
+
+    def should_use_exploitation(self):
+        return random.random() < self.Q0
+
+    def exploit_best_edge(self, current_node):
+        # We will move to city with highest: pheromone*(1/distance)
+        logging.debug("Exploitation")
+        max_node = None
+        max_path_strength = -1
+        current_strength = None
+        for node in self.nodes_to_visit.values():
+            if self.graph.pheromone(current_node, node) == 0:
+                raise Exception("pheromone = 0")
+            current_strength = self.path_strength(current_node, node)
+            if current_strength > max_path_strength: # Remember city for highest pheromone path
+                max_path_strength = current_strength
+                max_node = node
+        return max_node
+
+    # Paper describes moving from current city c to a random city s with the probability
+    # distribution p(s) = cost(c, s)/ sum of cost(c, r) over visited cities r
+    # Here we find the average cost of travelling from c to all other not yet visited cities
+    # and choose the last node that has a cost higher than the average. If none meet this criterion,
+    # we choose the very last node
+    def explore_random_edge(self, current_node):
+        logging.debug("Exploration")
+        max_node = None
+        sum = 0
+        node = -1
+        for node in self.nodes_to_visit.values():
+            if self.graph.pheromone(current_node, node) == 0:
+                raise Exception("pheromone = 0")
+            sum += self.path_strength(current_node, node)
+        if sum == 0:
+            raise Exception("sum = 0")
+        avg = sum / len(self.nodes_to_visit)
+        logging.debug("avg = %s", avg)
+        for node in self.nodes_to_visit.values():
+            current_strength = self.path_strength(current_node, node)
+            if current_strength > avg:
+                logging.debug("path_strength = %s", current_strength)
+                max_node = node
+        if max_node is None:
+            max_node = node # Use last node
+        return max_node
+
+    def path_strength(self, start, end):
+        return self.graph.pheromone(start, end) * math.pow(self.graph.inverse_distance(start, end), self.Beta)
 
     # Update the pheromone on the path to move towards the initial pheromone level,
     # which is inversely proportional to the number of cities and the average distance

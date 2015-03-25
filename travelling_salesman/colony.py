@@ -49,15 +49,17 @@ class Colony:
         self.ant_counter += 1
         self.avg_path_cost += ant['path_cost']
         if ant['path_cost'] < self.best_path_cost:
-            self.best_path_cost = ant['path_cost']
-            self.best_path_matrix = ant['path_matrix']
-            self.best_path = ant['path']
-            self.best_path_iteration = self.iteration
+            self.update_best_path(ant)
         if self.ant_counter == len(self.ants):
             self.avg_path_cost /= len(self.ants)
             logging.debug("Best: %s, %s, %s, %s",
                           self.best_path, self.best_path_cost, self.iteration, self.avg_path_cost)
 
+    def update_best_path(self, ant):
+        self.best_path_cost = ant['path_cost']
+        self.best_path_matrix = ant['path_matrix']
+        self.best_path = ant['path']
+        self.best_path_iteration = self.iteration
 
     def done(self):
         return self.iteration == self.num_iterations
@@ -71,14 +73,15 @@ class Colony:
         return ants
 
     def global_updating_rule(self):
-        #can someone explain this
-        evaporation = 0
-        deposition = 0
-        for start in range(0, self.graph.num_nodes):
-            for end in range(0, self.graph.num_nodes):
-                if start != end:
-                    delt_pheromone = self.best_path_matrix[start][end] / self.best_path_cost # This is 0 if start->end is not on current best path
-                    evaporation = (1 - self.Alpha) * self.graph.pheromone(start, end) # 10% of pheromone evaporates
-                    deposition = self.Alpha * delt_pheromone # deposition inversely proportional to total path length
-                    self.graph.update_pheromone(start, end, evaporation + deposition)
+        node_list = range(self.graph.num_nodes)
+        [self.update_pheromone_between(start, end)
+         for start in node_list
+         for end in node_list
+         if start != end]
 
+    def update_pheromone_between(self, start, end):
+        """Update amount of pheromone between start and end by calculating evaporation and deposition. A constant (Alpha) percentage evaporates. Deposition is inversely proportional to total path length, but 0 if this is not one the best paths found."""
+        delt_pheromone = self.best_path_matrix[start][end] / self.best_path_cost
+        evaporation = (1 - self.Alpha) * self.graph.pheromone(start, end)
+        deposition = self.Alpha * delt_pheromone
+        self.graph.update_pheromone(start, end, evaporation + deposition)

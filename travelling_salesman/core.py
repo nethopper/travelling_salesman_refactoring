@@ -5,13 +5,44 @@ import pickle
 from graph import Graph
 from colony import Colony
 
+def parse_args(argv):
+    if len(argv) < 3:
+        argv.insert(0, 10)
+    return {'nodes_to_visit': int(argv[0]),
+            'input_file': argv[1],
+            'output_file': argv[2]}
+
+def single_round(graph, num_ants, num_iterations):
+    graph.reset_pheromone() # Reset pheromone to equally distributed
+    workers = Colony(graph, num_ants, num_iterations)
+    logging.debug("Colony Started")
+    workers.start()
+    return {'path': workers.best_path,
+            'cost': workers.best_path_cost}
+
+def cut_cities(cost_matrix, num_nodes):
+    """Cut off the distances we're not going to use in both dimensions (remove nodes from top level and from each city's array)"""
+    if num_nodes >= len(cost_matrix):
+        return cost_matrix
+
+    cost_matrix = cost_matrix[0:num_nodes]
+    for i in range(num_nodes):
+        cost_matrix[i] = cost_matrix[i][0:num_nodes]
+    return cost_matrix
+
+def output_results(path, filename):
+    results = [path['path'], path['names'], path['cost']]
+    pickle.dump(results, open(filename, 'w+'))
+
+def log_results(path):
+    logging.info("Best path = %s", path['path'])
+    logging.info(" ".join(path['names']))
+    logging.info("Best path cost = %s", path['cost'])
+
 def main(argv):
-    nodes_to_visit = 10
+    config = parse_args(argv)
 
-    if len(argv) >= 3 and argv[0]:
-        nodes_to_visit = int(argv[0])
-
-    if nodes_to_visit <= 10: # number of nodes to visit
+    if config['nodes_to_visit'] <= 10: # number of nodes to visit
         ants = 20 # number of ants
         iterations = 12 # number of iterations
         repetitions = 1 # number of repetitions of the entire algorithm
@@ -20,47 +51,25 @@ def main(argv):
         iterations = 20
         repetitions = 1
 
-    input_data = pickle.load(open(argv[1], "r"))
-    node_names = input_data[0]
-    cost_matrix = input_data[1] # distances for each city
-    #why are we doing this?
-    if nodes_to_visit < len(cost_matrix):
-        # cut off the distances we're not going to use
-        # in both dimensions (remove nodes from top level
-        # and from each city's array)
-        cost_matrix = cost_matrix[0:nodes_to_visit]
-        for i in range(0, nodes_to_visit):
-            cost_matrix[i] = cost_matrix[i][0:nodes_to_visit]
-
-
+    [node_names, cost_matrix] = pickle.load(open(config['input_file'], "r"))
+    cost_matrix = cut_cities(cost_matrix, config['nodes_to_visit'])
 
     try:
-        graph = Graph(nodes_to_visit, cost_matrix)
+        graph = Graph(config['nodes_to_visit'], cost_matrix)
         best_path = None
-        best_path_cost = sys.maxint
         for i in range(0, repetitions):
             logging.info("Repetition %s", i)
-            graph.reset_pheromone() # Reset pheromone to equally distributed
-            workers = Colony(graph, ants, iterations)
-            logging.debug("Colony Started")
-            workers.start()
-            if workers.best_path_cost < best_path_cost:
+            path = single_round(graph, ants, iterations)
+            if  best_path is None or path['cost'] < best_path['cost']:
                 logging.debug("Colony Path")
-                best_path = workers.best_path
-                best_path_cost = workers.best_path_cost
+                best_path = path
 
-        logging.info("Best path = %s", best_path)
-        path_by_names = []
-        for node in best_path:
-            path_by_names.append(node_names[node])
-        logging.info(" ".join(path_by_names))
-        logging.info("Best path cost = %s", best_path_cost)
-        results = [best_path, path_by_names, best_path_cost]
-        pickle.dump(results, open(argv[2], 'w+'))
+        best_path['names'] = [node_names[node] for node in best_path['path']]
+        log_results(best_path)
+        output_results(best_path, config['output_file'])
     except Exception, e:
         logging.error("exception: " + str(e))
         traceback.print_exc()
-
 
 if __name__ == "__main__":
     main(sys.argv[1:])

@@ -2,6 +2,7 @@ __pycache__/
 doc/
 *.prof
 *.py[cod]
+*.egg-info/
 
 bin/
 include/

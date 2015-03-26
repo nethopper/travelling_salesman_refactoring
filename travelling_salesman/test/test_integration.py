@@ -22,7 +22,9 @@ def test_end_to_end_single(tmpdir, input_data, output_expected_single):
     pickle.dump(input_data, open(str(input_file), 'w'))
 
     random.seed(1)
-    tsp.main([cities_to_visit, str(input_file), str(output_file)])
+    tsp.main({'nodes': cities_to_visit,
+              'output': str(output_file),
+              'input_file': str(input_file)})
     assert pickle.load(open(str(output_file))) == output_expected_single
 
 def test_end_to_end_all(tmpdir, input_data):
@@ -35,5 +37,7 @@ def test_end_to_end_all(tmpdir, input_data):
     pickle.dump(input_data, open(str(input_file), 'w'))
     output_expected = pickle.load(open("data/outputs14-all-1000.pickled"))
 
-    tsp.main([cities_to_visit, str(input_file), str(output_file)])
+    tsp.main({'nodes': cities_to_visit,
+              'output': str(output_file),
+              'input_file': str(input_file)})
     assert pickle.load(open(str(output_file))) in output_expected

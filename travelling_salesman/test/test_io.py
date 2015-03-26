@@ -1,6 +1,7 @@
 import pytest
 import os
 import pickle
+import csv
 import travelling_salesman.io as tsp
 
 def test_parse_args():
@@ -41,3 +42,31 @@ def test_read_pickled(tmpdir):
     assert (tsp.read_pickled(open(str(input_file)))
             ==
             {'nodes': input_data[0], 'costs': input_data[1]})
+
+def prep_csv_input(input_file, input_data):
+    input_file.ensure()
+    with open(str(input_file), 'wb') as csv_file:
+        test_writer = csv.writer(csv_file)
+        [test_writer.writerow(row) for row in input_data]
+
+def test_read_csv(tmpdir):
+    input1 = [['Node 1', 'Node 2'], [1, 2], [4, 5]]
+    input2 = [['Berlin', 'Paris', 'Tokyo'],
+              [0, 5, 0], [4, 20, 10], [1, 2, 3]]
+
+    input1_file = tmpdir.join('input1.csv')
+    input2_file = tmpdir.join('input2.csv')
+    prep_csv_input(input1_file, input1)
+    prep_csv_input(input2_file, input2)
+
+    with open(str(input1_file), 'rb') as csv_file:
+        assert (tsp.read_csv(csv_file)
+                ==
+                {'nodes': ['Node 1', 'Node 2'],
+                 'costs': [[1, 2], [4, 5]]})
+
+    with open(str(input2_file), 'rb') as csv_file:
+        assert (tsp.read_csv(csv_file)
+                ==
+                {'nodes': ['Berlin', 'Paris', 'Tokyo'],
+                 'costs': [[0, 5, 0], [4, 20, 10], [1, 2, 3]]})

@@ -1,12 +1,13 @@
 import argparse
 import os
 import pickle
+import csv
 
 def parse_args(args):
     """Parse input arguments, returning a map of their values. This function should take into account any default values or overrides."""
     parser = argparse.ArgumentParser(description='Solve a Travelling Salesman Problem using an Ant Colont Optimization algorithm.')
     parser.add_argument('-i', '--input-format', metavar='format', type=str, nargs='?',
-                        choices=['csv'], help='Format of the input data')
+                        choices=['pickled', 'csv'], help='Format of the input data')
     parser.add_argument('-o', '--output', metavar='file', type=str, nargs='?',
                         const='stdout', default='stdout', help='Path to the output file')
     parser.add_argument('-n', '--nodes', metavar='N', type=int, nargs='?',
@@ -22,6 +23,14 @@ def output_results(path, filename):
 def read_pickled(input_file):
     [nodes, costs] = pickle.load(input_file)
     return {'nodes': nodes, 'costs': costs}
+
+def read_csv(input_file):
+    reader = csv.reader(input_file)
+    data = {'nodes': reader.next(),
+            'costs': []}
+    for row in reader:
+        data['costs'].append([float(cost) for cost in row])
+    return data
 
 def input_reader(input_format):
     return AVAILABLE_INPUT_READERS.get(input_format, None)
@@ -43,4 +52,5 @@ def read_input(config):
     else:
         return input_reader(input_file)
 
-AVAILABLE_INPUT_READERS = {'pickled': read_pickled}
+AVAILABLE_INPUT_READERS = {'pickled': read_pickled,
+                           'csv': read_csv}

@@ -7,7 +7,7 @@ def parse_args(args):
     """Parse input arguments, returning a map of their values. This function should take into account any default values or overrides."""
     parser = argparse.ArgumentParser(description='Solve a Travelling Salesman Problem using an Ant Colont Optimization algorithm.')
     parser.add_argument('-i', '--input-format', metavar='format', type=str, nargs='?',
-                        choices=['pickled', 'csv'], help='Format of the input data')
+                        choices=AVAILABLE_INPUT_READERS.keys(), help='Format of the input data')
     parser.add_argument('-o', '--output', metavar='file', type=str, nargs='?',
                         const='stdout', default='stdout', help='Path to the output file')
     parser.add_argument('-n', '--nodes', metavar='N', type=int, nargs='?',

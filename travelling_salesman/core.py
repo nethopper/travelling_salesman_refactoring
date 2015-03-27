@@ -60,5 +60,5 @@ def main(config):
         traceback.print_exc()
 
 if __name__ == "__main__":
-    config = io.parse_args(sys.argv)
+    config = io.parse_args()
     main(config)

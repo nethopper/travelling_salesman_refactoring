@@ -12,6 +12,7 @@ def input_data():
 def output_expected_single():
     return [[2, 1, 7, 8, 9, 13, 12, 11, 0, 6, 3, 10, 5, 4], ['Kirkenes', 'Hammerfest', 'Troms\xf8', 'Trondheim', '\xc5lesund', 'Vang', 'Sogndal', 'Fl\xe5m', 'Bergen', 'Stavanger', 'Kristiansand', 'Vinje', 'Oslo', 'Lillehammer'], 5979]
 
+@pytest.mark.slowtest
 def test_end_to_end_single(tmpdir, input_data, output_expected_single):
     cities_to_visit = 14
 
@@ -27,6 +28,7 @@ def test_end_to_end_single(tmpdir, input_data, output_expected_single):
               'input_file': str(input_file)})
     assert pickle.load(open(str(output_file))) == output_expected_single
 
+@pytest.mark.slowtest
 def test_end_to_end_all(tmpdir, input_data):
     cities_to_visit = 14
 

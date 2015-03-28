@@ -3,11 +3,11 @@ import traceback
 import logging
 import pickle
 import io
-from graph import Graph
+import graph as g
 from colony import Colony
 
 def single_round(graph, num_ants, num_iterations, colony_params):
-    graph.reset_pheromone() # Reset pheromone to equally distributed
+    g.reset_pheromone(graph) # Reset pheromone to equally distributed
     workers = Colony(graph, num_ants, num_iterations, colony_params)
     logging.debug("Colony Started")
     workers.start()
@@ -35,7 +35,7 @@ def main(config):
     colony_params = dict((param, config[param]) for param in ['alpha', 'beta', 'q0', 'rho'])
 
     try:
-        graph = Graph(config['nodes'], cost_matrix)
+        graph = g.create_graph(cost_matrix)
         best_path = None
         for i in range(0, config['repetitions']):
             logging.info("Repetition %s", i)

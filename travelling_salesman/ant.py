@@ -1,6 +1,7 @@
 import math
 import random
 import logging
+import graph as g
 from copy import deepcopy
 
 class Ant():
@@ -21,17 +22,17 @@ class Ant():
         # map of city_id -> city_id, without start city
         # during transitions, the node that an ant moves to
         # is removed
-        self.nodes_to_visit = [n for n in range(self.graph.num_nodes) if n != self.start_node]
+        self.nodes_to_visit = [n for n in range(g.size(self.graph)) if n != self.start_node]
 
 
     def reset_path_matrix(self):
-        self.path_matrix = [[0] * self.graph.num_nodes] * self.graph.num_nodes
+        num_nodes = g.size(self.graph)
+        self.path_matrix = [[0] * num_nodes] * num_nodes
 
 
     # move to new city found through state_transition_rule and remember the
     # distance. The new city is added to the path vector. The route is marked
     # on the path matrix.
-    #could this be simpler?
     def run(self):
         while not self.end():
             self.extend_path()
@@ -43,14 +44,14 @@ class Ant():
 
     def extend_path(self):
         new_node = self.state_transition_rule(self.current_node)
-        self.path_cost += self.graph.distance(self.current_node, new_node)
+        self.path_cost += self.graph['distances'][self.current_node][new_node]
         self.path.append(new_node)
         self.path_matrix[self.current_node][new_node] = 1
         self.local_updating_rule(self.current_node, new_node)
         self.current_node = new_node
 
     def add_cost_of_return(self):
-        self.path_cost += self.graph.distance(self.path[-1], self.path[0])
+        self.path_cost += self.graph['distances'][self.path[-1]][self.path[0]]
 
     def end(self):
         return not self.nodes_to_visit
@@ -99,13 +100,13 @@ class Ant():
             return self.nodes_to_visit[-1]
 
     def path_strength(self, start, end):
-        return self.graph.pheromone(start, end) * math.pow(self.graph.inverse_distance(start, end), self.Beta)
+        return self.graph['pheromones'][start][end] * math.pow(g.inverse_distance(self.graph, start, end), self.Beta)
 
     # Update the pheromone on the path to move towards the initial pheromone level,
     # which is inversely proportional to the number of cities and the average distance
     # New pheromone level is 0.01*old + 0.99*reset_pheromone
     def local_updating_rule(self, current_node, next_node):
         #Update the pheromones on the pheromone matrix to represent transitions of the ants
-        new_strength = (1 - self.Rho) * self.graph.pheromone(current_node, next_node) + (self.Rho * self.graph.pheromone0)
-        self.graph.update_pheromone(current_node, next_node, new_strength)
+        new_strength = (1 - self.Rho) * self.graph['pheromones'][current_node][next_node] + (self.Rho * g.base_pheromone(self.graph))
+        self.graph = self.graph.set_in(('pheromones', current_node, next_node), new_strength)
 

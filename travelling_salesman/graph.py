@@ -1,55 +1,46 @@
 import logging
+import pyrsistent as pst
+from pyrsistent import m, v
 
-class Graph:
-    def __init__(self, num_nodes, distance_matrix, pheromone_mat=None):
-        logging.debug(len(distance_matrix))
-        if len(distance_matrix) != num_nodes:
-            raise Exception("len(distance) != num_nodes")
-        self.num_nodes = num_nodes
-        self.distance_matrix = distance_matrix
-        if pheromone_mat is None:
-            self.pheromone_mat = self.empty_pheromone_matrix()
+def to_persistent(matrix):
+    return pst.pvector(pst.pvector(row) for row in matrix)
 
-    def empty_pheromone_matrix(self):
-        """Return a zero matrix with a row and column for each city"""
-        pheromone_matrix = []
-        for i in range(0, self.num_nodes):
-            pheromone_matrix.append([0] * self.num_nodes)
-        return pheromone_matrix
+def empty_matrix(size):
+    return v(v(0) * size) * size
 
+def create_graph(distance_matrix, pheromone_matrix=None):
+    num_nodes = len(distance_matrix)
+    def rows_correct_size(matrix):
+        return [len(row) == num_nodes for row in matrix]
 
-    def distance(self, r, s):
-        """Distance between cities r and s"""
-        return self.distance_matrix[r][s]
+    if not all(rows_correct_size(distance_matrix)):
+        raise ValueError("The distance matrix must be square")
+    elif pheromone_matrix is None:
+        pheromones = empty_matrix(num_nodes)
+    elif (len(pheromone_matrix) != num_nodes or
+          not all(rows_correct_size(pheromone_matrix))):
+        raise ValueError("The pheromone matrix must be the same size and shape as the distance matrix")
+    else:
+        pheromones = to_persistent(pheromone_matrix)
+    distances = to_persistent(distance_matrix)
 
-    def pheromone(self, r, s):
-        """Amount of pheromone between cities r and s"""
-        return self.pheromone_mat[r][s]
+    return m(distances = distances,
+             pheromones = pheromones)
 
-    def inverse_distance(self, r, s):
-        """Inverse of distance between cities r and s"""
-        return 1.0 / self.distance(r, s)
+def inverse_distance(graph, start, end):
+    return 1.0 / graph['distances'][start][end]
 
-    def update_pheromone(self, r, s, val):
-        """Set amount pheromone on edge between r and s to be val"""
-        self.pheromone_mat[r][s] = val
+def size(graph):
+    return len(graph['distances'])
 
+def average(matrix):
+    num_nodes = len(matrix)
+    return sum(sum(row) for row in matrix) / float(num_nodes * num_nodes)
 
-    def reset_pheromone(self):
-        """Reset amount of pheromone between all cities to be the same. The amount is inversely proportional to the number of cities and the average distance between cities."""
-        avg = self.average_distance()
-        self.pheromone0 = 1.0 / (self.num_nodes * 0.5 * avg)
-        logging.debug("Average = %s", avg)
-        logging.debug("pheromone0 = %s", self.pheromone0)
-        self.pheromone_mat = [[self.pheromone0] * self.num_nodes for i in range(self.num_nodes)]
+def base_pheromone(graph):
+    return 1.0 / (size(graph) * 0.5 * average(graph['distances']))
 
-    # Average distance between cities
-    def average_distance(self):
-        return self.average(self.distance_matrix)
-
-
-    def average_pheromone(self):
-        return self.average(self.pheromone_mat)
-
-    def average(self, matrix):
-        return sum([sum(row) for row in matrix]) / (self.num_nodes * self.num_nodes)
+def reset_pheromone(graph):
+    num_nodes = size(graph)
+    new_pheromones = v(v(base_pheromone(graph)) * num_nodes) * num_nodes
+    return graph.set('pheromones', new_pheromones)

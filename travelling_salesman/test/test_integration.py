@@ -18,7 +18,9 @@ def default_params():
             'beta': 1.0,
             'q0': 0.5,
             'rho': 0.99,
-            'num_ants': 28}
+            'num_ants': 28,
+            'iterations': 20,
+            'repetitions': 1}
 
 @pytest.mark.slowtest
 def test_end_to_end_single(tmpdir, input_data, output_expected_single, default_params):

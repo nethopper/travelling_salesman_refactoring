@@ -10,6 +10,10 @@ def parse_args(args=None):
     parser = argparse.ArgumentParser(description='Solve a Travelling Salesman Problem using an Ant Colont Optimization algorithm.')
 
     # Algorithm parameter configuration
+    parser.add_argument('-t', '--iterations', metavar='N', type=int,
+                        default=20, help='The number of iterations in a single run')
+    parser.add_argument('-r', '--repetitions', metavar='N', type=int,
+                        default=1, help='The number of full runs')
     parser.add_argument('-n', '--nodes', metavar='N', type=int,
                         default=10, help='The number of nodes to visit')
     parser.add_argument('--num-ants', metavar='N', type=int,

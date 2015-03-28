@@ -30,13 +30,6 @@ def log_results(path):
     logging.info("Best path cost = %s", path['cost'])
 
 def main(config):
-    if config['nodes'] <= 10: # number of nodes to visit
-        iterations = 12 # number of iterations
-        repetitions = 1 # number of repetitions of the entire algorithm
-    else:
-        iterations = 20
-        repetitions = 1
-
     data = io.read_input(config)
     cost_matrix = cut_nodes(data['costs'], config['nodes'])
     colony_params = dict((param, config[param]) for param in ['alpha', 'beta', 'q0', 'rho'])
@@ -44,9 +37,10 @@ def main(config):
     try:
         graph = Graph(config['nodes'], cost_matrix)
         best_path = None
-        for i in range(0, repetitions):
+        for i in range(0, config['repetitions']):
             logging.info("Repetition %s", i)
-            path = single_round(graph, config['num_ants'], iterations, colony_params)
+            path = single_round(graph, config['num_ants'],
+                                config['iterations'], colony_params)
             if  best_path is None or path['cost'] < best_path['cost']:
                 logging.debug("Colony Path")
                 best_path = path

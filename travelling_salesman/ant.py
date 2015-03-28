@@ -108,5 +108,6 @@ class Ant():
     def local_updating_rule(self, current_node, next_node):
         #Update the pheromones on the pheromone matrix to represent transitions of the ants
         new_strength = (1 - self.Rho) * self.graph['pheromones'][current_node][next_node] + (self.Rho * g.base_pheromone(self.graph))
-        self.graph = self.graph.set_in(('pheromones', current_node, next_node), new_strength)
+        self.graph['pheromones'][current_node][next_node] = new_strength
+        return self.graph
 

@@ -88,4 +88,4 @@ class Colony:
         delt_pheromone = self.best_path_matrix[start][end] / self.best_path_cost
         evaporation = (1 - self.Alpha) * self.graph['pheromones'][start][end]
         deposition = self.Alpha * delt_pheromone
-        self.graph = self.graph.set_in(('pheromones', start, end), evaporation + deposition)
+        self.graph['pheromones'][start][end] = evaporation + deposition

@@ -131,3 +131,72 @@ def test_read_csv(tmpdir):
                 ==
                 {'nodes': ['Berlin', 'Paris', 'Tokyo'],
                  'costs': [[0, 5, 0], [4, 20, 10], [1, 2, 3]]})
+
+@pytest.fixture
+def some_results():
+    return {'names': ['Node 1', 'Node 2', 'Node 3'],
+            'path': [0, 2, 1],
+            'cost': 115}
+
+@pytest.fixture
+def output_filepath(tmpdir):
+    output_filepath = tmpdir.join('output_file.pickled')
+    output_filepath.ensure()
+    return output_filepath
+
+def test_output_pickled(some_results, output_filepath):
+    # Given some results
+    # And output file
+    # When I output pickled
+    # Then the contents of the file are correct
+    with open(str(output_filepath), 'wb') as output_file:
+        tsp.write_pickled(some_results, output_file)
+
+    with open(str(output_filepath), 'rb') as output_file:
+        received = pickle.load(output_file)
+
+    assert received[0] == some_results['path']
+    assert received[1] == some_results['names']
+    assert received[2] == some_results['cost']
+
+def test_write_csv(some_results, output_filepath):
+    # Given some results
+    # And output file
+    # When I output csv
+    # Then the contents of the file are correct
+    with open(str(output_filepath), 'wb') as output_file:
+        tsp.write_csv(some_results, output_filepath)
+
+    with open(str(output_filepath), 'rb') as output_file:
+        reader = csv.reader(output_file)
+        contents = reader.next()
+
+    assert contents[0] == '115'
+    assert contents[1] == '0;2;1'
+
+def test_determine_output_writer():
+    # When no output format is specified
+    # And output file name is specified
+    # Then choose by extension
+    assert tsp.determine_output_writer({'output': 'output.pickled'}) == tsp.write_pickled
+
+    # When output format is None
+    # And output file name is specified
+    # Then choose by extension
+    assert (tsp.determine_output_writer({'output_format': None,
+                                       'output': 'output.pickled'})
+            ==
+            tsp.write_pickled)
+
+    # When output format is specified
+    # And no output file name is specified
+    # Then choose using the format
+    assert tsp.determine_output_writer({'output_format': 'csv'}) == tsp.write_csv
+
+    # When output format is specified
+    # And output file name is specified
+    # Then choose only by output format
+    assert (tsp.determine_output_writer({'output_format': 'pickled',
+                                       'output': 'output.csv'})
+            ==
+            tsp.write_pickled)

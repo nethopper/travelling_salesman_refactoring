@@ -22,13 +22,35 @@ def parse_args(args=None):
         parsed_args = parser.parse_args(args)
     return vars(parsed_args)
 
-def output_results(path, filename):
-    if filename is None:
+def write_pickled(results, output_file):
+    results = [results['path'], results['names'], results['cost']]
+    pickle.dump(results, output_file)
+
+def write_csv(results, output_file):
+    writer = csv.writer(output_file)
+    str_path = map(str, results['path'])
+    rows = [[str(results['cost']), ';'.join(str_path)]]
+    writer.writerows(rows)
+
+def determine_output_writer(config):
+    writer = None
+    if config.get('output_format', None) is not None:
+        writer = AVAILABLE_OUTPUT_WRITERS.get(config['output_format'], None)
+    else:
+        file_extension = os.path.splitext(config['output'])[1].lower()[1:]
+        writer = AVAILABLE_OUTPUT_WRITERS.get(file_extension, None)
+    return writer
+
+def write_output(results, config):
+    if config['output'] is None:
         output_file = sys.stdout
     else:
-        output_file = open(filename, 'w+')
-    results = [path['path'], path['names'], path['cost']]
-    pickle.dump(results, output_file)
+        output_file = open(config['output'], 'wb+')
+    output_writer = determine_output_writer(config)
+    if output_writer is None:
+        raise ValueError("The output format could not be recognized. Ensure that a supported type is specified either through the output file extension or command-line flag.")
+    output_writer(results, output_file)
+    output_file.close()
 
 def read_pickled(input_file):
     [nodes, costs] = pickle.load(input_file)
@@ -42,23 +64,20 @@ def read_csv(input_file):
         data['costs'].append([float(cost) for cost in row])
     return data
 
-def input_reader(input_format):
-    return AVAILABLE_INPUT_READERS.get(input_format, None)
-
 def determine_input_reader(config):
     reader = None
     if config.get('input_format', None) is not None:
-        reader = input_reader(config['input_format'])
+        reader = AVAILABLE_INPUT_READERS.get(config['input_format'], None)
     else:
         file_extension = os.path.splitext(config['input_file'])[1].lower()[1:]
-        reader = input_reader(file_extension)
+        reader = AVAILABLE_INPUT_READERS.get(file_extension, None)
     return reader
 
 def read_input(config):
     if config['input_file'] is None:
         input_file = sys.stdin
     else:
-        input_file = open(config['input_file'], 'r')
+        input_file = open(config['input_file'], 'rb')
     input_reader = determine_input_reader(config)
     if input_reader is None:
         raise ValueError("The input format could not be recognized. Ensure that a supported type is specified either through the input file extension or command-line flag.")
@@ -69,3 +88,5 @@ def read_input(config):
 
 AVAILABLE_INPUT_READERS = {'pickled': read_pickled,
                            'csv': read_csv}
+AVAILABLE_OUTPUT_WRITERS = {'pickled': write_pickled,
+                            'csv': write_csv}

@@ -54,7 +54,7 @@ def main(config):
 
         best_path['names'] = [data['nodes'][node] for node in best_path['path']]
         log_results(best_path)
-        io.output_results(best_path, config['output'])
+        io.write_output(best_path, config)
     except Exception, e:
         logging.error("exception: " + str(e))
         traceback.print_exc()

@@ -4,110 +4,107 @@ import logging
 import graph as g
 from copy import deepcopy
 
-class Ant():
-    def __init__(self, ID, start_node, graph, Beta, Q0, Rho):
-        self.ID = ID
-        self.start_node = start_node
-        self.current_node = self.start_node
-        self.graph = graph
-        self.path = [self.start_node]
-        self.path_cost = 0
-        self.Beta = Beta
-        self.Q0 = Q0
-        self.Rho = Rho
-        self.reset_nodes_to_visit()
-        self.reset_path_matrix()
+def create_ant(ID, start_node, graph, Beta, Q0, Rho):
+    ant = {'ID': ID,
+           'start_node': start_node,
+           'path': [start_node],
+           'path_cost': 0,
+           'path_matrix': [],
+           'nodes_to_visit': [],
+           'current_node': start_node,
+           'graph': graph,
+           'config': {'beta': Beta, 'rho': Rho, 'q0': Q0}}
+    ant = reset_nodes_to_visit(ant)
+    ant = reset_path_matrix(ant)
+    return ant
 
-    def reset_nodes_to_visit(self):
-        # map of city_id -> city_id, without start city
-        # during transitions, the node that an ant moves to
-        # is removed
-        self.nodes_to_visit = [n for n in range(g.size(self.graph)) if n != self.start_node]
-
-
-    def reset_path_matrix(self):
-        num_nodes = g.size(self.graph)
-        self.path_matrix = [[0] * num_nodes] * num_nodes
+def reset_nodes_to_visit(ant):
+    # map of city_id -> city_id, without start city
+    # during transitions, the node that an ant moves to
+    # is removed
+    ant['nodes_to_visit'] = [n for n in range(g.size(ant['graph'])) if n != ant['start_node']]
+    return ant
 
 
-    # move to new city found through state_transition_rule and remember the
-    # distance. The new city is added to the path vector. The route is marked
-    # on the path matrix.
-    def run(self):
-        while not self.end():
-            self.extend_path()
-        self.add_cost_of_return()
-        return {'ID': self.ID,
-                'path_cost':  self.path_cost,
-                'path_matrix': deepcopy(self.path_matrix),
-                'path': deepcopy(self.path)}
+def reset_path_matrix(ant):
+    num_nodes = g.size(ant['graph'])
+    ant['path_matrix'] = [[0 for x in range(num_nodes)] for y in range(num_nodes)]
+    return ant
 
-    def extend_path(self):
-        new_node = self.state_transition_rule(self.current_node)
-        self.path_cost += self.graph['distances'][self.current_node][new_node]
-        self.path.append(new_node)
-        self.path_matrix[self.current_node][new_node] = 1
-        self.local_updating_rule(self.current_node, new_node)
-        self.current_node = new_node
 
-    def add_cost_of_return(self):
-        self.path_cost += self.graph['distances'][self.path[-1]][self.path[0]]
+def run(ant):
+    """Move to new city found through state_transition_rule and remember the distance. The new city is added to the path vector. The route is marked on the path matrix."""
+    while not end(ant['nodes_to_visit']):
+        ant = extend_path(ant)
+    ant['path_cost'] += cost_of_return(ant)
+    ant['path_matrix'] = deepcopy(ant['path_matrix'])
+    ant['path'] = deepcopy(ant['path'])
+    return dict((key, ant[key]) for key in ['ID', 'path_cost', 'path_matrix', 'path'])
 
-    def end(self):
-        return not self.nodes_to_visit
 
-    # Returns a city to move to using cost function
-    # pheromone(current, next) * (1/dist(current, next))^beta (currently beta is always 1)
-    def state_transition_rule(self, current_node):
-        max_node = None
-        if self.should_use_exploitation():
-            max_node = self.exploit_best_edge(current_node)
-        else:
-            max_node = self.explore_random_edge(current_node)
-        if max_node is None:
-            raise Exception("max_node not found")
-        self.nodes_to_visit.remove(max_node)
-        return max_node
+def cost_of_return(ant):
+    return ant['graph']['distances'][ant['path'][-1]][ant['path'][0]]
 
-    def should_use_exploitation(self):
-        return random.random() < self.Q0
+def extend_path(ant):
+    transition = state_transition_rule(ant['graph'], ant['current_node'], ant['nodes_to_visit'], ant['config']['beta'], ant['config']['q0'])
+    ant['nodes_to_visit'] = transition['nodes_to_visit']
+    new_node = transition['next']
+    ant['path_cost'] += ant['graph']['distances'][ant['current_node']][new_node]
+    ant['path'].append(new_node)
+    ant['path_matrix'][ant['current_node']][new_node] = 1
+    local_updating_rule(ant['graph'], ant['current_node'], new_node, ant['config']['beta'], ant['config']['rho'])
+    ant['current_node'] = new_node
+    return ant
 
-    def exploit_best_edge(self, current_node):
-        # We will move to city with highest: pheromone*(1/distance)
-        logging.debug("Exploitation")
-        strength_to = lambda node : self.path_strength(current_node, node)
-        return max(self.nodes_to_visit, key=strength_to)
+def end(nodes_to_visit):
+    return not nodes_to_visit
 
-    # Paper describes moving from current city c to a random city s with the probability
-    # distribution p(s) = cost(c, s)/ sum of cost(c, r) over visited cities r
-    # Here we find the average cost of travelling from c to all other not yet visited cities
-    # and choose the last node that has a cost higher than the average. If none meet this criterion,
-    # we choose the very last node
-    def explore_random_edge(self, current_node):
-        logging.debug("Exploration")
-        max_node = self.nodes_to_visit[-1]
+def state_transition_rule(graph, current_node, nodes_to_visit, beta, q0):
+    """Returns a city to move to by using either exploitation (choosing edge with highest strength), or exploration (choosing any good edge)"""
+    max_node = None
+    if should_use_exploitation(q0):
+        print 'exploitation!'
+        max_node = exploit_best_edge(graph, current_node, nodes_to_visit, beta)
+    else:
+        print 'exploration!'
+        max_node = explore_new_edge(graph, current_node, nodes_to_visit, beta)
+    if max_node is None:
+        raise Exception("max_node not found")
+    nodes_to_visit.remove(max_node)
+    return {'next': max_node, 'nodes_to_visit': nodes_to_visit}
 
-        avg_strength = sum(self.path_strength(current_node, node) for node in self.nodes_to_visit) / len(self.nodes_to_visit)
+def should_use_exploitation(q0):
+    return random.random() < q0
 
-        logging.debug("avg = %s", avg_strength)
+def exploit_best_edge(graph, current_node, nodes_to_visit, beta):
+    """We will move to city with highest: pheromone*(1/distance)"""
+    logging.debug("Exploitation")
+    strength_to = lambda node : path_strength(graph, current_node, node, beta)
+    return max(nodes_to_visit, key=strength_to)
 
-        is_eligible = lambda n: self.path_strength(current_node, n) > avg_strength
-        eligible_nodes = filter(is_eligible, self.nodes_to_visit)
+def explore_new_edge(graph, current_node, nodes_to_visit, beta):
+    """Paper describes moving from current city c to a random city s with the probability distribution p(s) = cost(c, s)/ sum of cost(c, r) over visited cities r. Here we find the average cost of travelling from c to all other not yet visited cities and choose the last node that has a cost higher than the average. If none meet this criterion, we choose the very last node"""
+    logging.debug("Exploration")
+    max_node = nodes_to_visit[-1]
 
-        if eligible_nodes:
-            return eligible_nodes[-1]
-        else:
-            return self.nodes_to_visit[-1]
+    avg_strength = sum(path_strength(graph, current_node, node, beta) for node in nodes_to_visit) / len(nodes_to_visit)
 
-    def path_strength(self, start, end):
-        return self.graph['pheromones'][start][end] * math.pow(g.inverse_distance(self.graph, start, end), self.Beta)
+    logging.debug("avg = %s", avg_strength)
 
-    # Update the pheromone on the path to move towards the initial pheromone level,
-    # which is inversely proportional to the number of cities and the average distance
-    # New pheromone level is 0.01*old + 0.99*reset_pheromone
-    def local_updating_rule(self, current_node, next_node):
-        #Update the pheromones on the pheromone matrix to represent transitions of the ants
-        new_strength = (1 - self.Rho) * self.graph['pheromones'][current_node][next_node] + (self.Rho * g.base_pheromone(self.graph))
-        self.graph['pheromones'][current_node][next_node] = new_strength
-        return self.graph
+    is_eligible = lambda n: path_strength(graph, current_node, n, beta) > avg_strength
+    eligible_nodes = filter(is_eligible, nodes_to_visit)
 
+    if eligible_nodes:
+        return eligible_nodes[-1]
+    else:
+        return nodes_to_visit[-1]
+
+def path_strength(graph, start, end, beta):
+    """Calculate the strength of the path from start to end. This is determined by the amount of pheromone and distance. Parameter beta changes how important the distance is (lower beta = less important)."""
+    return graph['pheromones'][start][end] * math.pow(g.inverse_distance(graph, start, end), beta)
+
+def local_updating_rule(graph, current_node, next_node, beta, rho):
+    """Update the pheromones on the pheromone matrix to represent transitions of the ants"""
+    new_strength = (1 - rho) * graph['pheromones'][current_node][next_node] + (rho * g.base_pheromone(graph))
+    graph['pheromones'][current_node][next_node] = new_strength
+    return graph

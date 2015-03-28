@@ -2,7 +2,7 @@ import logging
 import sys
 import random
 import graph as g
-from ant import Ant
+import ant as a
 
 
 class Colony:
@@ -35,7 +35,7 @@ class Colony:
         self.ant_counter = 0
         self.iteration += 1
         for ant in self.ants:
-            self.update(ant.run())
+            self.update(a.run(ant))
 
 
     def num_ants(self):
@@ -70,7 +70,7 @@ class Colony:
     def create_workers(self):
         ants = []
         for i in range(0, self.num_ants):
-            ant = Ant(i, random.randint(0, g.size(self.graph) - 1), self.graph,
+            ant = a.create_ant(i, random.randint(0, g.size(self.graph) - 1), self.graph,
                       self.params['beta'], self.params['q0'], self.params['rho'])
             ants.append(ant)
 

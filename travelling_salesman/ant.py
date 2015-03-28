@@ -4,16 +4,16 @@ import logging
 from copy import deepcopy
 
 class Ant():
-    def __init__(self, ID, start_node, graph):
+    def __init__(self, ID, start_node, graph, Beta, Q0, Rho):
         self.ID = ID
         self.start_node = start_node
         self.current_node = self.start_node
         self.graph = graph
         self.path = [self.start_node]
         self.path_cost = 0
-        self.Beta = 1.0
-        self.Q0 = 0.5
-        self.Rho = 0.99
+        self.Beta = Beta
+        self.Q0 = Q0
+        self.Rho = Rho
         self.reset_nodes_to_visit()
         self.reset_path_matrix()
 

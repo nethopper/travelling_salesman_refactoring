@@ -6,9 +6,9 @@ import io
 from graph import Graph
 from colony import Colony
 
-def single_round(graph, num_ants, num_iterations):
+def single_round(graph, num_ants, num_iterations, colony_params):
     graph.reset_pheromone() # Reset pheromone to equally distributed
-    workers = Colony(graph, num_ants, num_iterations)
+    workers = Colony(graph, num_ants, num_iterations, colony_params)
     logging.debug("Colony Started")
     workers.start()
     return {'path': workers.best_path,
@@ -31,23 +31,22 @@ def log_results(path):
 
 def main(config):
     if config['nodes'] <= 10: # number of nodes to visit
-        ants = 20 # number of ants
         iterations = 12 # number of iterations
         repetitions = 1 # number of repetitions of the entire algorithm
     else:
-        ants = 28
         iterations = 20
         repetitions = 1
 
     data = io.read_input(config)
     cost_matrix = cut_nodes(data['costs'], config['nodes'])
+    colony_params = dict((param, config[param]) for param in ['alpha', 'beta', 'q0', 'rho'])
 
     try:
         graph = Graph(config['nodes'], cost_matrix)
         best_path = None
         for i in range(0, repetitions):
             logging.info("Repetition %s", i)
-            path = single_round(graph, ants, iterations)
+            path = single_round(graph, config['num_ants'], iterations, colony_params)
             if  best_path is None or path['cost'] < best_path['cost']:
                 logging.debug("Colony Path")
                 best_path = path

@@ -4,12 +4,13 @@ import random
 from ant import Ant
 
 class Colony:
-    def __init__(self, graph, num_ants, num_iterations):
+    def __init__(self, graph, num_ants, num_iterations, params):
         self.graph = graph
         self.num_ants = num_ants
         self.num_iterations = num_iterations
-        self.Alpha = 0.1
+        self.Alpha = params['alpha']
         self.reset()
+        self.params = params
 
     def reset(self):
         self.best_path_cost = sys.maxint             # best path cost (length)
@@ -67,7 +68,8 @@ class Colony:
     def create_workers(self):
         ants = []
         for i in range(0, self.num_ants):
-            ant = Ant(i, random.randint(0, self.graph.num_nodes - 1), self.graph)
+            ant = Ant(i, random.randint(0, self.graph.num_nodes - 1), self.graph,
+                      self.params['beta'], self.params['q0'], self.params['rho'])
             ants.append(ant)
 
         return ants

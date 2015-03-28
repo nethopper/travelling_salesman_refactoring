@@ -12,8 +12,16 @@ def input_data():
 def output_expected_single():
     return [[2, 1, 7, 8, 9, 13, 12, 11, 0, 6, 3, 10, 5, 4], ['Kirkenes', 'Hammerfest', 'Troms\xf8', 'Trondheim', '\xc5lesund', 'Vang', 'Sogndal', 'Fl\xe5m', 'Bergen', 'Stavanger', 'Kristiansand', 'Vinje', 'Oslo', 'Lillehammer'], 5979]
 
+@pytest.fixture
+def default_params():
+    return {'alpha': 0.1,
+            'beta': 1.0,
+            'q0': 0.5,
+            'rho': 0.99,
+            'num_ants': 28}
+
 @pytest.mark.slowtest
-def test_end_to_end_single(tmpdir, input_data, output_expected_single):
+def test_end_to_end_single(tmpdir, input_data, output_expected_single, default_params):
     cities_to_visit = 14
 
     input_file = tmpdir.join("input.pickled")
@@ -23,13 +31,15 @@ def test_end_to_end_single(tmpdir, input_data, output_expected_single):
     pickle.dump(input_data, open(str(input_file), 'w'))
 
     random.seed(1)
-    tsp.main({'nodes': cities_to_visit,
+    config = {'nodes': cities_to_visit,
               'output': str(output_file),
-              'input_file': str(input_file)})
+              'input_file': str(input_file)}
+    config.update(default_params)
+    tsp.main(config)
     assert pickle.load(open(str(output_file))) == output_expected_single
 
 @pytest.mark.slowtest
-def test_end_to_end_all(tmpdir, input_data):
+def test_end_to_end_all(tmpdir, input_data, default_params):
     cities_to_visit = 14
 
     input_file = tmpdir.join("input.pickled")
@@ -39,7 +49,9 @@ def test_end_to_end_all(tmpdir, input_data):
     pickle.dump(input_data, open(str(input_file), 'w'))
     output_expected = pickle.load(open("data/outputs14-all-1000.pickled"))
 
-    tsp.main({'nodes': cities_to_visit,
+    config = {'nodes': cities_to_visit,
               'output': str(output_file),
-              'input_file': str(input_file)})
+              'input_file': str(input_file)}
+    config.update(default_params)
+    tsp.main(config)
     assert pickle.load(open(str(output_file))) in output_expected

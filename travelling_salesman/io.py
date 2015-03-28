@@ -8,12 +8,25 @@ import csv
 def parse_args(args=None):
     """Parse input arguments, returning a map of their values. This function should take into account any default values or overrides."""
     parser = argparse.ArgumentParser(description='Solve a Travelling Salesman Problem using an Ant Colont Optimization algorithm.')
+
+    # Algorithm parameter configuration
+    parser.add_argument('-n', '--nodes', metavar='N', type=int,
+                        default=10, help='The number of nodes to visit')
+    parser.add_argument('--num-ants', metavar='N', type=int,
+                        default=20, help='The number of ants to use')
+    parser.add_argument('--alpha', metavar='N', type=float, default=0.1,
+                        help='Deposition impact on amount of pheromone on edge (0.0 - 1.0')
+    parser.add_argument('--beta', metavar='N', type=float,
+                        default=1.0, help='Adjusts the impact of distance on edge strength')
+    parser.add_argument('--q0', metavar='N', type=float, default=0.5,
+                        help='Likelihood of choosing exploration over exploitation (0.0 - 1.0)')
+    parser.add_argument('--rho', metavar='N', type=float,
+                        default=0.99, help='Impact of initial pheromone values on local updating rule')
+    # Input and Output arguments
     parser.add_argument('-i', '--input-format', metavar='format', type=str, nargs='?',
                         choices=AVAILABLE_INPUT_READERS.keys(), help='Format of the input data')
     parser.add_argument('-o', '--output', metavar='file', type=str, nargs='?',
                         help='Path to the output file')
-    parser.add_argument('-n', '--nodes', metavar='N', type=int, nargs='?',
-                        const=10, default=10, help='The number of nodes to visit')
     parser.add_argument('input_file', metavar='input_file', type=str,
                         nargs='?', help='Path to the input file')
     if args is None:

@@ -11,8 +11,8 @@ def single_round(graph, num_ants, num_iterations, colony_params):
     workers = Colony(graph, num_ants, num_iterations, colony_params)
     logging.debug("Colony Started")
     workers.start()
-    return {'path': workers.best_path,
-            'cost': workers.best_path_cost}
+    return {'path': workers.colony['best_path'],
+            'cost': workers.colony['best_path_cost']}
 
 def cut_nodes(cost_matrix, num_nodes):
     """Cut off the distances we're not going to use in both dimensions (remove nodes from top level and from each city's array)"""

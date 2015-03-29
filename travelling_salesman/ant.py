@@ -65,10 +65,8 @@ def state_transition_rule(graph, current_node, nodes_to_visit, params):
     """Returns a city to move to by using either exploitation (choosing edge with highest strength), or exploration (choosing any good edge)"""
     max_node = None
     if should_use_exploitation(params['q0']):
-        print 'exploitation!'
         max_node = exploit_best_edge(graph, current_node, nodes_to_visit, params['beta'])
     else:
-        print 'exploration!'
         max_node = explore_new_edge(graph, current_node, nodes_to_visit, params['beta'])
     if max_node is None:
         raise Exception("max_node not found")

@@ -36,6 +36,8 @@ def parse_args(args=None):
     # Input and Output arguments
     parser.add_argument('-i', '--input-format', metavar='format', type=str, nargs='?',
                         choices=AVAILABLE_INPUT_READERS.keys(), help='Format of the input data')
+    parser.add_argument('-f', '--output-format', metavar='format', type=str, nargs='?',
+                        choices=AVAILABLE_OUTPUT_WRITERS.keys(), help='Format of the output data')
     parser.add_argument('-o', '--output', metavar='file', type=str, nargs='?',
                         help='Path to the output file')
     parser.add_argument('input_file', metavar='input_file', type=str,
@@ -44,6 +46,10 @@ def parse_args(args=None):
         parsed_args = parser.parse_args()
     else:
         parsed_args = parser.parse_args(args)
+
+    if parsed_args.input_file is None and parsed_args.input_format is None:
+        parser.error("At least one of '--input-format' and 'input_file' must be provided")
+
     return vars(parsed_args)
 
 def write_pickled(results, output_file):
@@ -56,24 +62,28 @@ def write_csv(results, output_file):
     rows = [[str(results['cost']), ';'.join(str_path)]]
     writer.writerows(rows)
 
-def determine_output_writer(config):
+def determine_output_format(config):
     writer = None
     if config.get('output_format', None) is not None:
-        writer = AVAILABLE_OUTPUT_WRITERS.get(config['output_format'], None)
+        writer = config['output_format']
+    elif config.get('output', None) is not None:
+        writer = os.path.splitext(config['output'])[1].lower()[1:]
     else:
-        file_extension = os.path.splitext(config['output'])[1].lower()[1:]
-        writer = AVAILABLE_OUTPUT_WRITERS.get(file_extension, None)
+        writer = determine_input_format(config)
     return writer
+
+def output_writer(output_format):
+    return AVAILABLE_OUTPUT_WRITERS.get(output_format, None)
 
 def write_output(results, config):
     if config['output'] is None:
         output_file = sys.stdout
     else:
         output_file = open(config['output'], 'wb+')
-    output_writer = determine_output_writer(config)
-    if output_writer is None:
+    writer = output_writer(determine_output_format(config))
+    if writer is None:
         raise ValueError("The output format could not be recognized. Ensure that a supported type is specified either through the output file extension or command-line flag.")
-    output_writer(results, output_file)
+    writer(results, output_file)
     output_file.close()
 
 def read_pickled(input_file):
@@ -88,25 +98,29 @@ def read_csv(input_file):
         data['costs'].append([float(cost) for cost in row])
     return data
 
-def determine_input_reader(config):
-    reader = None
+def determine_input_format(config):
+    input_format = None
     if config.get('input_format', None) is not None:
-        reader = AVAILABLE_INPUT_READERS.get(config['input_format'], None)
+        input_format = config['input_format']
+    elif config.get('input_file', None) is not None:
+        input_format = os.path.splitext(config['input_file'])[1].lower()[1:]
     else:
-        file_extension = os.path.splitext(config['input_file'])[1].lower()[1:]
-        reader = AVAILABLE_INPUT_READERS.get(file_extension, None)
-    return reader
+        raise ValueError("Could not determine input format due to incorrect configuration values. Neither 'input_format' nor 'input_file' provided.")
+    return input_format
+
+def input_reader(input_format):
+    return AVAILABLE_INPUT_READERS.get(input_format, None)
 
 def read_input(config):
     if config['input_file'] is None:
         input_file = sys.stdin
     else:
         input_file = open(config['input_file'], 'rb')
-    input_reader = determine_input_reader(config)
-    if input_reader is None:
+    reader = input_reader(determine_input_format(config))
+    if reader is None:
         raise ValueError("The input format could not be recognized. Ensure that a supported type is specified either through the input file extension or command-line flag.")
     else:
-        data = input_reader(input_file)
+        data = reader(input_file)
         input_file.close()
         return data
 

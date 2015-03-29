@@ -5,22 +5,20 @@ import csv
 import travelling_salesman.io as tsp
 
 def default_parse_arg_values(config, excluded=None):
-    defaults = {'input_file': None,
-                'output': None,
+    defaults = {'output': None,
                 'nodes': None,
-                'input_format': None}
+                'input_format': None,
+                'output_format': None}
     if excluded is not None:
         defaults.pop(excluded, None)
     for key, expected in defaults.iteritems():
         assert config[key] == expected
 
-
 def test_parse_args():
-
     # When no arguments are specified
-    # Then use all default values
-    config = tsp.parse_args(''.split())
-    default_parse_arg_values(config, None)
+    # Then exit and output help
+    with pytest.raises(SystemExit):
+        tsp.parse_args(''.split())
 
     # When only input file specified
     # Then use the specified input file
@@ -32,28 +30,28 @@ def test_parse_args():
     # When number of nodes is specified
     # Then use the specified number of nodes
     # And use default values for the rest
-    config = tsp.parse_args('--nodes 1'.split())
+    config = tsp.parse_args('--nodes 1 input_file.txt'.split())
     assert config['nodes'] == 1
     default_parse_arg_values(config, 'nodes')
 
     # When verbose is specified
     # Then set verbosity
     # And use default values for the rest
-    config = tsp.parse_args('--verbose'.split())
+    config = tsp.parse_args('--verbose input_file.txt'.split())
     assert config['verbose'] == True
     default_parse_arg_values(config, 'nodes')
 
     # When very verbose is specified
     # Then set very_verbose
     # And use default values for the rest
-    config = tsp.parse_args('--very-verbose'.split())
+    config = tsp.parse_args('--very-verbose input_file.txt'.split())
     assert config['very_verbose'] == True
     default_parse_arg_values(config, 'nodes')
 
     # When output file is specified
     # Then use the specified output file
     # And use default values for the rest
-    config = tsp.parse_args('--output output_file.txt'.split())
+    config = tsp.parse_args('--output output_file.txt input_file.txt'.split())
     assert config['output'] == 'output_file.txt'
     default_parse_arg_values(config, 'output')
 
@@ -62,9 +60,18 @@ def test_parse_args():
     # And use default values for the rest
     config = tsp.parse_args('--input-format csv'.split())
     assert config['input_format'] == 'csv'
+    assert config['input_file'] is None
     default_parse_arg_values(config, 'input_format')
 
-    # When all arguments are specified
+    # When output format is specified
+    # Then use the specified output format
+    # And use default values for the rest
+    config = tsp.parse_args('--output-format csv input_file.txt'.split())
+    assert config['output_format'] == 'csv'
+    default_parse_arg_values(config, 'output_format')
+
+
+    # When many arguments are specified
     # Then use all specified values
     args = '--input-format csv --nodes 5 --output outfile.txt input_file.txt'
     config = tsp.parse_args(args.split())
@@ -78,33 +85,37 @@ def test_parse_args():
     with pytest.raises(SystemExit):
         tsp.parse_args('--input-format txt input_file.txt'.split())
 
-def test_determine_input_reader():
+def test_determine_input_format():
     # When no input format is specified
     # And input file name is specified
     # Then choose by extension
-    assert tsp.determine_input_reader({'input_file': 'input.pickled'}) == tsp.read_pickled
+    assert tsp.determine_input_format({'input_file': 'input.pickled'}) == 'pickled'
 
     # When input format is None
     # And input file name is specified
     # Then choose by extension
-    assert (tsp.determine_input_reader({'input_format': None,
+    assert (tsp.determine_input_format({'input_format': None,
                                        'input_file': 'input.pickled'})
             ==
-            tsp.read_pickled)
+            'pickled')
 
     # When input format is specified
     # And no input file name is specified
     # Then choose using the format
-    assert tsp.determine_input_reader({'input_format': 'csv'}) == tsp.read_csv
+    assert tsp.determine_input_format({'input_format': 'csv'}) == 'csv'
 
     # When input format is specified
     # And input file name is specified
     # Then choose only by input format
-    assert (tsp.determine_input_reader({'input_format': 'pickled',
+    assert (tsp.determine_input_format({'input_format': 'pickled',
                                        'input_file': 'input.csv'})
             ==
-            tsp.read_pickled)
+            'pickled')
 
+    # When neither input format nor input file are specified
+    # Then raise exception
+    with pytest.raises(ValueError):
+        tsp.determine_input_format({})
 
 def test_read_pickled(tmpdir):
     input_data = (['Node 1', 'Node 2'],
@@ -188,29 +199,29 @@ def test_write_csv(some_results, output_filepath):
     assert contents[0] == '115'
     assert contents[1] == '0;2;1'
 
-def test_determine_output_writer():
+def test_determine_output_format():
     # When no output format is specified
     # And output file name is specified
     # Then choose by extension
-    assert tsp.determine_output_writer({'output': 'output.pickled'}) == tsp.write_pickled
+    assert tsp.determine_output_format({'output': 'output.pickled'}) == 'pickled'
 
     # When output format is None
     # And output file name is specified
     # Then choose by extension
-    assert (tsp.determine_output_writer({'output_format': None,
+    assert (tsp.determine_output_format({'output_format': None,
                                        'output': 'output.pickled'})
             ==
-            tsp.write_pickled)
+            'pickled')
 
     # When output format is specified
     # And no output file name is specified
     # Then choose using the format
-    assert tsp.determine_output_writer({'output_format': 'csv'}) == tsp.write_csv
+    assert tsp.determine_output_format({'output_format': 'csv'}) == 'csv'
 
     # When output format is specified
     # And output file name is specified
     # Then choose only by output format
-    assert (tsp.determine_output_writer({'output_format': 'pickled',
+    assert (tsp.determine_output_format({'output_format': 'pickled',
                                        'output': 'output.csv'})
             ==
-            tsp.write_pickled)
+            'pickled')

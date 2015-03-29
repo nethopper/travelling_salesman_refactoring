@@ -27,12 +27,10 @@ def reset_nodes_to_visit(ant):
     ant['nodes_to_visit'] = [n for n in range(g.size(ant['graph'])) if n != ant['start_node']]
     return ant
 
-
 def reset_path_matrix(ant):
     num_nodes = g.size(ant['graph'])
     ant['path_matrix'] = [[0 for x in range(num_nodes)] for y in range(num_nodes)]
     return ant
-
 
 def run(ant):
     """Move to new city found through state_transition_rule and remember the distance. The new city is added to the path vector. The route is marked on the path matrix."""

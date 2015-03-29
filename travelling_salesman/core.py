@@ -5,6 +5,7 @@ import pickle
 import io
 import graph as g
 import colony as c
+import utils as u
 
 def single_round(workers):
     g.reset_pheromone(workers['graph']) # Reset pheromone to equally distributed
@@ -12,16 +13,6 @@ def single_round(workers):
     c.run(workers)
     return {'path': workers['best_path']['path'],
             'cost': workers['best_path']['cost']}
-
-def cut_nodes(cost_matrix, num_nodes):
-    """Cut off the distances we're not going to use in both dimensions (remove nodes from top level and from each city's array)"""
-    if num_nodes >= len(cost_matrix):
-        return cost_matrix
-
-    cost_matrix = cost_matrix[0:num_nodes]
-    for i in range(num_nodes):
-        cost_matrix[i] = cost_matrix[i][0:num_nodes]
-    return cost_matrix
 
 def log_results(path):
     logging.info("Best path = %s", path['path'])
@@ -36,7 +27,7 @@ def main(config):
     else:
         logging.basicConfig(level=logging.WARNING)
     data = io.read_input(config)
-    cost_matrix = cut_nodes(data['costs'], config['nodes'])
+    cost_matrix = u.cut_to_size(data['costs'], config['nodes'])
     colony_params = dict((param, config[param]) for param in ['alpha', 'beta', 'q0', 'rho', 'num_ants', 'iterations'])
 
     try:

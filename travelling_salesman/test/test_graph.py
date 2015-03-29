@@ -2,6 +2,7 @@ import pytest
 import pyrsistent as pst
 from pyrsistent import m, v
 import travelling_salesman.graph as tsp
+import travelling_salesman.utils as u
 
 @pytest.fixture
 def distance_matrix3():
@@ -31,17 +32,13 @@ def sample_graph():
                             [40, 50, 60],
                             [70, 80, 90]]}
 
-def test_empty_matrix():
-    assert tsp.empty_matrix(2) == [[0, 0], [0, 0]]
-    assert tsp.empty_matrix(3) == [[0, 0, 0], [0, 0, 0], [0, 0, 0]]
-
 def test_create_graph_distance3(distance_matrix3):
     # Given a 3x3 distance matrix
     # When I create a graph
     # Then I get a map containing a distance matrix and a zero pheromone matrix
     graph = tsp.create_graph(distance_matrix3)
     assert graph['distances'] == distance_matrix3
-    assert graph['pheromones'] == tsp.empty_matrix(3)
+    assert graph['pheromones'] == u.empty_matrix(3)
 
 def test_create_graph_distance4(distance_matrix4):
     # Given a 4x4 distance matrix
@@ -49,7 +46,7 @@ def test_create_graph_distance4(distance_matrix4):
     # Then I get a map containing a distance matrix and a zero pheromone matrix
     graph = tsp.create_graph(distance_matrix4)
     graph['distances'] == distance_matrix4
-    graph['pheromones'] == tsp.empty_matrix(4)
+    graph['pheromones'] == u.empty_matrix(4)
 
 def test_create_graph_both(distance_matrix3, pheromone_matrix3):
     # Given a 4x4 distance matrix

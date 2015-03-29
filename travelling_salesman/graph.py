@@ -1,9 +1,5 @@
 import logging
-import pyrsistent as pst
-from pyrsistent import m, v
-
-def empty_matrix(size):
-    return [[0 for x in range(size)] for y in range(size)]
+import utils as u
 
 def create_graph(distance_matrix, pheromone_matrix=None):
     num_nodes = len(distance_matrix)
@@ -13,7 +9,7 @@ def create_graph(distance_matrix, pheromone_matrix=None):
     if not all(rows_correct_size(distance_matrix)):
         raise ValueError("The distance matrix must be square")
     elif pheromone_matrix is None:
-        pheromone_matrix = empty_matrix(num_nodes)
+        pheromone_matrix = u.empty_matrix(num_nodes)
     elif (len(pheromone_matrix) != num_nodes or
           not all(rows_correct_size(pheromone_matrix))):
         raise ValueError("The pheromone matrix must be the same size and shape as the distance matrix")
@@ -36,6 +32,6 @@ def base_pheromone(graph):
 
 def reset_pheromone(graph):
     num_nodes = size(graph)
-    new_pheromones = [[base_pheromone(graph) for x in range(num_nodes)] for y in range(num_nodes)]
+    new_pheromones = u.create_matrix(num_nodes, base_pheromone(graph))
     graph['pheromones'] = new_pheromones
     return graph

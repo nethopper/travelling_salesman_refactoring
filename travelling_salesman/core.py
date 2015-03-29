@@ -27,8 +27,13 @@ def main(config):
     else:
         logging.basicConfig(level=logging.WARNING)
     data = io.read_input(config)
+    if config['nodes'] is None:
+        config['nodes'] = len(data['costs'])
     cost_matrix = u.cut_to_size(data['costs'], config['nodes'])
     colony_params = dict((param, config[param]) for param in ['alpha', 'beta', 'q0', 'rho', 'num_ants', 'iterations'])
+
+    logging.debug("Configuration data: " + str(config))
+    logging.debug("Cost matrix used: " + str(data['costs']))
 
     try:
         graph = g.create_graph(cost_matrix)

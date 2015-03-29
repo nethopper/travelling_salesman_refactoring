@@ -7,7 +7,7 @@ import travelling_salesman.io as tsp
 def default_parse_arg_values(config, excluded=None):
     defaults = {'input_file': None,
                 'output': None,
-                'nodes': 10,
+                'nodes': None,
                 'input_format': None}
     if excluded is not None:
         defaults.pop(excluded, None)

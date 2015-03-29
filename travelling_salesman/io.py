@@ -15,7 +15,7 @@ def parse_args(args=None):
     parser.add_argument('-r', '--repetitions', metavar='N', type=int,
                         default=1, help='The number of full runs')
     parser.add_argument('-n', '--nodes', metavar='N', type=int,
-                        default=10, help='The number of nodes to visit')
+                        help='The number of nodes to visit')
     parser.add_argument('--num-ants', metavar='N', type=int,
                         default=20, help='The number of ants to use')
     parser.add_argument('--alpha', metavar='N', type=float, default=0.1,

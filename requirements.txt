@@ -1,0 +1,6 @@
+PyInstaller==2.1
+argparse==1.2.1
+py==1.4.26
+pytest==2.6.4
+six==1.9.0
+wsgiref==0.1.2

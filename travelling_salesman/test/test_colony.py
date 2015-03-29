@@ -17,10 +17,9 @@ def config():
 
 @pytest.fixture
 def colony(graph, config):
-    return {'best_path': [1, 2, 0],
-            'best_path_cost': 15.0,
-            'best_path_matrix': [[0, 0, 0], [0, 0, 1], [1, 0, 0]],
-            'best_path_iteration': 1,
+    return {'best_path': {'path': [1, 2, 0],
+                          'cost': 15.0,
+                          'matrix': [[0, 0, 0], [0, 0, 1], [1, 0, 0]]},
             'graph': graph,
             'params': config}
 

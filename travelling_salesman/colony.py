@@ -4,74 +4,53 @@ import random
 import graph as g
 import ant as a
 
-class Colony:
-    def __init__(self, graph, num_ants, num_iterations, params):
-        self.graph = graph
-        self.num_ants = num_ants
-        self.Alpha = params['alpha']
-        self.colony = self.reset()
-        params['num_ants'] = num_ants
-        self.colony.update({'graph': graph, 'params': params})
-        self.colony['num_iterations'] = num_iterations
-        self.params = params
+def create_colony(graph, params):
+    return {'graph': graph, 'params': params, 'best_path': empty_path()}
 
-    def reset(self):
-        return {'best_path_cost': sys.maxint,
-                'best_path': None,
-                'best_path_matrix': None,
-                'best_path_iteration': 0}
+def empty_path():
+    return {'cost': sys.maxint,
+            'path': None,
+            'matrix': None}
 
-    def start(self):
-        self.reset()
-        colony = self.colony
-        colony['iteration'] = 0
+def reset(colony):
+    colony.pop('ants', None)
+    colony.pop('avg_path_cost', None)
+    colony['best_path'] = empty_path()
+    colony['iteration'] = 0
+    return colony
 
-        while not done(colony):
-            colony['ants'] = create_workers(colony['graph'], colony['params'])
-            colony = self.perform_iteration(colony)
-            # Note that this will help refine the results future iterations.
-            colony = global_updating_rule(colony)
-        return colony
+def run(colony):
+    while not done(colony):
+        colony['ants'] = create_workers(colony['graph'], colony['params'])
+        colony = perform_iteration(colony)
+        # Note that this will help refine the results future iterations.
+        colony = global_updating_rule(colony)
+    return colony
 
-    def perform_iteration(self, colony):
-        self.avg_path_cost = 0
-        self.ant_counter = 0
-        colony['iteration'] += 1
-        for ant in colony['ants']:
-            colony = self.update(colony, a.run(ant), colony['iteration'])
-        return colony
+def perform_iteration(colony):
+    colony['iteration'] += 1
+    for ant in colony['ants']:
+        colony = update(colony, a.run(ant))
+    colony['avg_path_cost'] = sum(ant['path_cost'] for ant in colony['ants']) / len(colony['ants'])
+    logging.debug("Best path found: %s", colony['best_path'])
+    logging.debug("Average path cost: %s", colony['avg_path_cost'])
+    return colony
 
+def update(colony, ant):
+    logging.debug("Update called by %s", ant['ID'])
+    if ant['path_cost'] < colony['best_path']['cost']:
+            best_path = best_path_data(ant)
+            colony['best_path'] = best_path
+            colony['best_path'].update({'iteration': colony['iteration']})
+    return colony
 
-    def num_ants(self):
-        return len(self.ants)
-
-    def num_iterations(self):
-        return self.num_iterations
-
-    def iteration_counter(self):
-        return self.iteration
-
-    def update(self, colony, ant, iteration):
-        logging.debug("Update called by %s", ant['ID'])
-        self.ant_counter += 1
-        self.avg_path_cost += ant['path_cost']
-        if ant['path_cost'] < colony['best_path_cost']:
-                best_path = best_path_data(ant, iteration)
-                colony.update(best_path)
-        if self.ant_counter == len(colony['ants']):
-            self.avg_path_cost /= len(colony['ants'])
-            logging.debug("Best: %s, %s, %s, %s",
-                          colony['best_path'], colony['best_path_cost'], colony['iteration'], self.avg_path_cost)
-        return colony
-
-def best_path_data(ant, iteration):
-    return {'best_path_cost': ant['path_cost'],
-            'best_path_matrix': ant['path_matrix'],
-            'best_path': ant['path'],
-            'best_path_iteration': iteration}
+def best_path_data(ant):
+    return {'cost': ant['path_cost'],
+            'matrix': ant['path_matrix'],
+            'path': ant['path']}
 
 def done(colony):
-    return colony['iteration'] >= colony['num_iterations']
+    return colony['iteration'] >= colony['params']['iterations']
 
 def create_workers(graph, params):
     ants = []
@@ -92,7 +71,7 @@ def global_updating_rule(colony):
 
 def update_pheromone_between(colony, start, end):
     """Update amount of pheromone between start and end by calculating evaporation and deposition. A constant (Alpha) percentage evaporates. Deposition is inversely proportional to total path length, but 0 if this is not one the best paths found."""
-    delt_pheromone = colony['best_path_matrix'][start][end] / colony['best_path_cost']
+    delt_pheromone = colony['best_path']['matrix'][start][end] / colony['best_path']['cost']
     evaporation = (1 - colony['params']['alpha']) * colony['graph']['pheromones'][start][end]
     deposition = colony['params']['alpha'] * delt_pheromone
     colony['graph']['pheromones'][start][end] = evaporation + deposition

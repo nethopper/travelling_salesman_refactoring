@@ -1,0 +1,5 @@
+London,Edinburgh,Aberdeen,Manchester
+0,     400,      500,     250
+400,   0,        100,     300
+500,   100,      0,       370
+250,   300,      370,     0

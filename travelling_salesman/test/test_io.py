@@ -36,6 +36,20 @@ def test_parse_args():
     assert config['nodes'] == 1
     default_parse_arg_values(config, 'nodes')
 
+    # When verbose is specified
+    # Then set verbosity
+    # And use default values for the rest
+    config = tsp.parse_args('--verbose'.split())
+    assert config['verbose'] == True
+    default_parse_arg_values(config, 'nodes')
+
+    # When very verbose is specified
+    # Then set very_verbose
+    # And use default values for the rest
+    config = tsp.parse_args('--very-verbose'.split())
+    assert config['very_verbose'] == True
+    default_parse_arg_values(config, 'nodes')
+
     # When output file is specified
     # Then use the specified output file
     # And use default values for the rest

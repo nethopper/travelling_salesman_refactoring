@@ -26,6 +26,13 @@ def parse_args(args=None):
                         help='Likelihood of choosing exploration over exploitation (0.0 - 1.0)')
     parser.add_argument('--rho', metavar='N', type=float,
                         default=0.99, help='Impact of initial pheromone values on local updating rule')
+
+    # Logging arguments
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='Print more information to the screen')
+    parser.add_argument('-vv', '--very-verbose', action='store_true',
+                        help='Print even more information to the screen')
+
     # Input and Output arguments
     parser.add_argument('-i', '--input-format', metavar='format', type=str, nargs='?',
                         choices=AVAILABLE_INPUT_READERS.keys(), help='Format of the input data')

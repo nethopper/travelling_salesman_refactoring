@@ -29,6 +29,12 @@ def log_results(path):
     logging.info("Best path cost = %s", path['cost'])
 
 def main(config):
+    if config.get('very_verbose', False):
+        logging.basicConfig(level=logging.DEBUG)
+    elif config.get('verbose', False):
+        logging.basicConfig(level=logging.INFO)
+    else:
+        logging.basicConfig(level=logging.WARNING)
     data = io.read_input(config)
     cost_matrix = cut_nodes(data['costs'], config['nodes'])
     colony_params = dict((param, config[param]) for param in ['alpha', 'beta', 'q0', 'rho', 'num_ants', 'iterations'])

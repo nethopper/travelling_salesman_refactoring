@@ -69,9 +69,10 @@ class Colony:
 
     def create_workers(self):
         ants = []
+        ant_params =  dict((param, self.params[param]) for param in a.required_params)
         for i in range(0, self.num_ants):
-            ant = a.create_ant(i, random.randint(0, g.size(self.graph) - 1), self.graph,
-                      self.params['beta'], self.params['q0'], self.params['rho'])
+            ant = a.create_ant(i, random.randint(0, g.size(self.graph) - 1),
+                               self.graph, ant_params)
             ants.append(ant)
 
         return ants

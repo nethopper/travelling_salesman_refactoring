@@ -23,7 +23,7 @@ def ant(graph, config):
             'nodes_to_visit': [0, 2],
             'current_node': 1,
             'graph': graph,
-            'config': config}
+            'params': config}
 
 def test_extend_path(ant):
     orig_graph = deepcopy(ant['graph'])
@@ -42,11 +42,12 @@ def test_extend_path(ant):
 
 def test_state_transition_rule(graph, config):
     nodes_to_visit = [0, 2]
-    assert tsp.state_transition_rule(graph, 1, nodes_to_visit, config['beta'], config['q0']) == {'nodes_to_visit': [0], 'next': 2}
+    assert tsp.state_transition_rule(graph, 1, nodes_to_visit, config) == {'nodes_to_visit': [0], 'next': 2}
 
     nodes_to_visit = [0, 2]
     graph['pheromones'][1][0] = 60
-    assert tsp.state_transition_rule(graph, 1, nodes_to_visit, config['beta'], 1-config['q0']) == {'nodes_to_visit': [2], 'next': 0}
+    config['q0'] = 1 - config['q0']
+    assert tsp.state_transition_rule(graph, 1, nodes_to_visit, config) == {'nodes_to_visit': [2], 'next': 0}
 
 
 def test_exploit_best_edge(graph, config):
@@ -69,7 +70,7 @@ def test_path_strength(graph, config):
                (50 / 5.0)) < 0.00000001
 
 def test_local_updating_rule(graph, config):
-    updated_graph = tsp.local_updating_rule(graph, 0, 2, config['beta'], config['rho'])
+    updated_graph = tsp.local_updating_rule(graph, 0, 2, config['rho'])
     assert updated_graph['pheromones'][0][0] == 10
     assert updated_graph['pheromones'][0][1] == 20
     assert abs(updated_graph['pheromones'][0][2] -

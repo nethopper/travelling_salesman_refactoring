@@ -1,6 +1,4 @@
 import pytest
-import pyrsistent as pst
-from pyrsistent import m, v
 import travelling_salesman.graph as tsp
 import travelling_salesman.utils as u
 

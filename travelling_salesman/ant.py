@@ -47,13 +47,17 @@ def cost_of_return(ant):
 
 def extend_path(ant):
     transition = state_transition_rule(ant['graph'], ant['current_node'], ant['nodes_to_visit'], ant['params'])
-    ant['nodes_to_visit'] = transition['nodes_to_visit']
     new_node = transition['next']
+    ant['nodes_to_visit'] = transition['nodes_to_visit']
+    ant = add_node_to_path(ant, new_node)
+    local_updating_rule(ant['graph'], ant['current_node'], new_node, ant['params']['rho'])
+    ant['current_node'] = new_node
+    return ant
+
+def add_node_to_path(ant, new_node):
     ant['path_cost'] += ant['graph']['distances'][ant['current_node']][new_node]
     ant['path'].append(new_node)
     ant['path_matrix'][ant['current_node']][new_node] = 1
-    local_updating_rule(ant['graph'], ant['current_node'], new_node, ant['params']['rho'])
-    ant['current_node'] = new_node
     return ant
 
 def end(nodes_to_visit):

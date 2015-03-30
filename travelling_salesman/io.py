@@ -35,9 +35,9 @@ def parse_args(args=None):
 
     # Input and Output arguments
     parser.add_argument('-i', '--input-format', metavar='format', type=str, nargs='?',
-                        choices=AVAILABLE_INPUT_READERS.keys(), help='Format of the input data')
+                        choices=AVAILABLE_INPUT_READERS.keys(), help='Format of the input data. Available formats: '+str(AVAILABLE_INPUT_READERS.keys()))
     parser.add_argument('-f', '--output-format', metavar='format', type=str, nargs='?',
-                        choices=AVAILABLE_OUTPUT_WRITERS.keys(), help='Format of the output data')
+                        choices=AVAILABLE_OUTPUT_WRITERS.keys(), help='Format of the output data. Available formats: '+str(AVAILABLE_OUTPUT_WRITERS.keys()))
     parser.add_argument('-o', '--output', metavar='file', type=str, nargs='?',
                         help='Path to the output file')
     parser.add_argument('input_file', metavar='input_file', type=str,
